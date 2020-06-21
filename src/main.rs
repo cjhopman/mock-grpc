@@ -1,11 +1,11 @@
-use std::env;
-use tonic::transport::Server;
-use futures::channel::mpsc;
 use crate::protogen::protos::mock::mock_service_server::{MockService, MockServiceServer};
-use tonic::{Response, Status, Request};
-use crate::protogen::protos::mock::{MockResponse, MockRequest};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::protogen::protos::mock::{MockRequest, MockResponse};
+use futures::channel::mpsc;
 use futures::SinkExt;
+use std::env;
+use std::time::{SystemTime, UNIX_EPOCH};
+use tonic::transport::Server;
+use tonic::{Request, Response, Status};
 
 mod protogen;
 
@@ -16,7 +16,10 @@ pub struct Mock {}
 impl MockService for Mock {
     type MockStream = mpsc::Receiver<Result<MockResponse, Status>>;
 
-    async fn mock(&self, request: Request<MockRequest>) -> Result<Response<Self::MockStream>, Status> {
+    async fn mock(
+        &self,
+        request: Request<MockRequest>,
+    ) -> Result<Response<Self::MockStream>, Status> {
         let req = request.into_inner();
         let (mut tx, rx) = mpsc::channel(req.buffer_size as usize);
 
@@ -25,7 +28,12 @@ impl MockService for Mock {
             let mut count = 1;
 
             loop {
-                if SystemTime::now().duration_since(started_at).unwrap().as_secs() > req.ttl {
+                if SystemTime::now()
+                    .duration_since(started_at)
+                    .unwrap()
+                    .as_secs()
+                    > req.ttl
+                {
                     break;
                 };
 
@@ -33,14 +41,24 @@ impl MockService for Mock {
                     let now = SystemTime::now();
 
                     println!("Sending stream {}...", count);
-                    match tx.send(Ok(MockResponse {
-                        stream_id: count,
-                        created_at: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
-                    })).await {
+                    match tx
+                        .send(Ok(MockResponse {
+                            stream_id: count,
+                            created_at: SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs(),
+                        }))
+                        .await
+                    {
                         Ok(_) => {
-                            println!("Sent stream {} in {} nanos", count, SystemTime::now().duration_since(now).unwrap().as_nanos());
-                        },
-                        Err(_) => {},
+                            println!(
+                                "Sent stream {} in {} nanos",
+                                count,
+                                SystemTime::now().duration_since(now).unwrap().as_nanos()
+                            );
+                        }
+                        Err(_) => {}
                     };
 
                     count += 1;
