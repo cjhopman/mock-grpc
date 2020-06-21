@@ -37,7 +37,7 @@ impl MockService for Mock {
                     break;
                 };
 
-                while count < req.number_of_streams {
+                while count <= req.number_of_streams {
                     let now = SystemTime::now();
 
                     println!("Sending stream {}...", count);
