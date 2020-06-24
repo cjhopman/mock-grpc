@@ -14,14 +14,14 @@ pub struct Mock {}
 
 #[tonic::async_trait]
 impl MockService for Mock {
-    type MockStream = mpsc::Receiver<Result<MockResponse, Status>>;
+    type MockStream = mpsc::UnboundedReceiver<Result<MockResponse, Status>>;
 
     async fn mock(
         &self,
         request: Request<MockRequest>,
     ) -> Result<Response<Self::MockStream>, Status> {
         let req = request.into_inner();
-        let (mut tx, rx) = mpsc::channel(req.buffer_size as usize);
+        let (mut tx, rx) = mpsc::unbounded();
 
         tokio::spawn(async move {
             let started_at = SystemTime::now();
