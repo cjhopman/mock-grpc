@@ -72,6 +72,7 @@ impl MockService for Mock {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt::init();
     let port = match env::var("PORT") {
         Ok(val) => val,
         Err(_) => String::from("50052"),
