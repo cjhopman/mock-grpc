@@ -2,8 +2,8 @@ use crate::protogen::protos::mock::mock_service_server::{MockService, MockServic
 use crate::protogen::protos::mock::{MockRequest, MockResponse};
 use futures::channel::mpsc;
 use futures::SinkExt;
-use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::{env, time::Instant};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
@@ -22,24 +22,17 @@ impl MockService for Mock {
     ) -> Result<Response<Self::MockStream>, Status> {
         let req = request.into_inner();
         let (mut tx, rx) = mpsc::channel(req.buffer_size as usize);
+        let started_at = Instant::now();
 
         tokio::spawn(async move {
-            let started_at = SystemTime::now();
             let mut count = 1;
 
             loop {
-                if SystemTime::now()
-                    .duration_since(started_at)
-                    .unwrap()
-                    .as_secs()
-                    > req.ttl
-                {
+                if Instant::now().duration_since(started_at).as_secs() > req.ttl {
                     break;
                 };
 
                 while count <= req.number_of_streams {
-                    let now = SystemTime::now();
-
                     println!("Sending stream {}...", count);
                     match tx
                         .send(Ok(MockResponse {
@@ -53,9 +46,9 @@ impl MockService for Mock {
                     {
                         Ok(_) => {
                             println!(
-                                "Sent stream {} in {} nanos",
+                                "Sent stream {} after {:.4} secs",
                                 count,
-                                SystemTime::now().duration_since(now).unwrap().as_nanos()
+                                Instant::now().duration_since(started_at).as_secs_f64()
                             );
                         }
                         Err(_) => {}
